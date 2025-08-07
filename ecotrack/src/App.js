@@ -1,6 +1,6 @@
 import WasteLogger from './WasteLogger';
 
-function App() {
+export default function App() {
   return (
     <div className="App">
       <h1>EcoTrack 🌿</h1>
@@ -8,5 +8,3 @@ function App() {
     </div>
   );
 }
-
-export default App;

@@ -1,39 +1,65 @@
 import React, { useState, useEffect } from 'react';
+import CategoryChart from './components/CategoryChart';
+import ProgressTracker from './components/ProgressTracker';
+import ChallengeBanner from './components/ChallengeBanner';
 
-function WasteLogger() {
+export default function WasteLogger() {
   const [habit, setHabit] = useState('');
   const [category, setCategory] = useState('recyclable');
   const [logs, setLogs] = useState([]);
   const [filter, setFilter] = useState('all');
 
+  // ✅ Safe loading from localStorage
   useEffect(() => {
-    const savedLogs = JSON.parse(localStorage.getItem('wasteLogs')) || [];
-    setLogs(savedLogs);
+    try {
+      const raw = localStorage.getItem('wasteLogs');
+      const saved = raw ? JSON.parse(raw) : [];
+      setLogs(Array.isArray(saved) ? saved : []);
+    } catch (error) {
+      console.error('Failed to parse logs from localStorage:', error);
+      setLogs([]);
+    }
   }, []);
 
+  // ✅ Safe saving to localStorage
   useEffect(() => {
-    localStorage.setItem('wasteLogs', JSON.stringify(logs));
+    try {
+      localStorage.setItem('wasteLogs', JSON.stringify(logs));
+    } catch (error) {
+      console.error('Failed to save logs:', error);
+    }
   }, [logs]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (habit.trim()) {
-      const newLog = {
-        habit,
-        category,
-        timestamp: new Date().toLocaleString(),
-      };
-      setLogs([newLog, ...logs]);
-      setHabit('');
-      setCategory('recyclable');
+    if (!habit.trim()) return;
+
+    const newLog = {
+      habit,
+      category,
+      timestamp: new Date().toISOString()
+    };
+
+    setLogs((prev) => [newLog, ...prev]);
+    setHabit('');
+    setCategory('recyclable');
+  };
+
+  const handleClearLogs = () => {
+    if (window.confirm('Clear all logs?')) {
+      setLogs([]);
+      localStorage.removeItem('wasteLogs');
     }
   };
 
-  const filteredLogs =
-    filter === 'all' ? logs : logs.filter((log) => log.category === filter);
+  const filteredLogs = filter === 'all'
+    ? logs
+    : logs.filter((entry) => entry.category === filter);
 
   return (
     <div>
+      <ChallengeBanner />
+
       <h2>Log Your Eco-Friendly Habit</h2>
       <form onSubmit={handleSubmit}>
         <input
@@ -59,16 +85,22 @@ function WasteLogger() {
         <option value="landfill">🗑️ Landfill</option>
       </select>
 
+      <button onClick={handleClearLogs} style={{ marginTop: '1rem' }}>
+        🧼 Clear All Logs
+      </button>
+
       <ul>
-        {filteredLogs.map((entry, index) => (
-          <li key={index}>
-            <strong>{entry.habit}</strong> — {entry.category} <br />
-            <small>{entry.timestamp}</small>
+        {filteredLogs.map((entry, idx) => (
+          <li key={idx}>
+            <strong>{entry.habit}</strong> — {entry.category}
+            <br />
+            <small>{new Date(entry.timestamp).toLocaleString()}</small>
           </li>
         ))}
       </ul>
+
+      <CategoryChart logs={filteredLogs} />
+      <ProgressTracker logs={filteredLogs} />
     </div>
   );
 }
-
-export default WasteLogger;
